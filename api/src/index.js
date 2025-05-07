@@ -22,22 +22,35 @@ const server = new ProxyChain.Server({
 
             const page = await browser.newPage();
 
+            // ✅ Mirror incoming headers (with safety fallback)
+            const forwardedHeaders = request.headers || {};
+
+            // Set headers on the Puppeteer page
+            await page.setExtraHTTPHeaders({
+                ...forwardedHeaders,
+                // Override with real-looking values
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+            });
+
             await page.setViewport({ width: 1366, height: 768 });
             await page.emulateTimezone('America/New_York');
-            await page.setUserAgent(
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
-            );
 
             const response = await page.goto(fixedUrl, {
                 waitUntil: 'networkidle0',
-                timeout: 30000,
+                timeout: 60000,
             });
 
             const finalUrl = page.url(); // resolved after redirects
             const status = response.status();
             const headers = response.headers();
             const html = await page.content();
-
+            
+            const context = page.browserContext();
+            const cookies = await context.cookies();
+            
+            console.log('Cookies set during navigation:', cookies);
+            headers['Set-Cookie'] = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+            
             await browser.close();
 
             console.error(`Puppeteer success for ${fixedUrl}`);
