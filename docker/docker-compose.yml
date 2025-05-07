@@ -1,0 +1,17 @@
+services:
+
+  api:
+    container_name: api
+    build:
+      context: ./api
+      args:
+        - NODE_ENV=${NODE_ENV}
+    restart: unless-stopped
+    ports:
+      - "${PROXY_PUBLIC_PORT}:${PROXY_PRIVATE_PORT}"
+    volumes:
+      - ../api:/opt/app
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PROXY_PRIVATE_PORT: ${PROXY_PRIVATE_PORT}
+    entrypoint: run "pm2-runtime pm2.json"

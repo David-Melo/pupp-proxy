@@ -1,0 +1,17 @@
+{
+    "apps": [
+        {
+            "name": "pupp-proxy",
+            "script": "src/index.js",
+            "watch": true,
+            "watch_delay": 1500,
+            "kill_timeout" : 3000,
+            "listen_timeout": 5000,
+            "log_date_format": "YYYY-MM-DD HH:mm Z",
+            "merge_logs": true,
+            "ignore_watch": [
+                "node_modules"
+            ]
+        }
+    ]
+}
