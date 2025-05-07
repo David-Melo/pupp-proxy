@@ -71,6 +71,12 @@ const server = new ProxyChain.Server({
                 timeout: 60000,
             });
 
+            // optional: wait for challenge resolution
+            if ((await page.content()).includes('cf_chl_opt')) {
+                await page.waitForTimeout(20000);
+                await page.waitForNavigation({ waitUntil: 'networkidle0' });
+            }
+
             const finalUrl = page.url(); // resolved after redirects
             const status = response.status();
             const headers = response.headers();
