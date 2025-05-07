@@ -1,5 +1,8 @@
 import ProxyChain from 'proxy-chain';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+puppeteer.use(StealthPlugin());
 
 const server = new ProxyChain.Server({
     port: process.env.PROXY_PRIVATE_PORT || 8080,
@@ -18,6 +21,12 @@ const server = new ProxyChain.Server({
             });
 
             const page = await browser.newPage();
+
+            await page.setViewport({ width: 1366, height: 768 });
+            await page.emulateTimezone('America/New_York');
+            await page.setUserAgent(
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+            );
 
             const response = await page.goto(fixedUrl, {
                 waitUntil: 'networkidle0',
