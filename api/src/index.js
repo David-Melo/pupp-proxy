@@ -23,9 +23,13 @@ app.post('/search', async (req, res) => {
 
     /* Get Original Search Payload */
     /* Obtener el payload de búsqueda original */
-    const payload = req.body;
+    const { site_url, api_url, api_payload = {}, site_headers = {}, api_headers = {} } = req.body;
 
     try {
+
+        if (!site_url || !api_url) {
+            return res.status(400).json({ error: 'Missing required parameters: site_url or api_url' });
+        }
 
         /* Launch Puppeteer with stealth plugin and hardened args */
         /* Iniciar Puppeteer con el plugin stealth y argumentos reforzados */
@@ -50,7 +54,8 @@ app.post('/search', async (req, res) => {
         /* Set Sanitized Forwarded Headers */
         /* Establecer encabezados sanitizados reenviados */
         await page.setExtraHTTPHeaders({
-            ...forwardedHeaders
+            ...forwardedHeaders,
+            ...site_headers
         });
 
         /* Set viewport and timezone to mimic a real browser */
@@ -60,27 +65,28 @@ app.post('/search', async (req, res) => {
 
         /* Visit crexi.com to trigger Cloudflare and obtain necessary cookies */
         /* Visitar crexi.com para activar Cloudflare y obtener las cookies necesarias */
-        await page.goto('https://www.crexi.com', { waitUntil: 'networkidle2', timeout: 90000 });
+        await page.goto(site_url, { waitUntil: 'networkidle2', timeout: 90000 });
 
         /* Send POST request to the API from within browser context */
         /* Enviar solicitud POST a la API desde el contexto del navegador */
-        const apiResponse = await page.evaluate(async (body) => {
-            const res = await fetch('https://api.crexi.com/assets/search', {
+        const apiResponse = await page.evaluate(async ({ api_url, site_url, api_headers, api_payload }) => {
+            const res = await fetch(api_url, {
                 method: 'POST',
                 headers: {
                     'accept': 'application/json, text/plain, */*',
                     'content-type': 'application/json',
-                    'origin': 'https://www.crexi.com',
-                    'referer': 'https://www.crexi.com/'
+                    'origin': site_url,
+                    'referer': site_url,
+                    ...api_headers
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify(api_payload)
             });
             const json = await res.json();
             return {
                 status: res.status,
                 body: json
             };
-        }, payload);
+        }, { api_url, site_url, api_headers, api_payload });
 
         /* Close Browser Session */
         /* Cerrar la sesión del navegador */
@@ -95,7 +101,7 @@ app.post('/search', async (req, res) => {
         /* Handle any runtime errors */
         /* Manejar cualquier error de tiempo de ejecución */
         console.error('Error processing request:', err);
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error', message: err.message, code: err.code });
     }
 
 });
